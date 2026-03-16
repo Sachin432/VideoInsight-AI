@@ -19,12 +19,15 @@ from llm.langgraph_agent import run_agent
 from utils.clip_generator import generate_clip
 
 
-# ---------------- UI ---------------- #
+# ---------------- APP CONFIG ---------------- #
 
 st.set_page_config(page_title="VideoInsight AI", layout="wide")
 
 st.title("🎥 VideoInsight AI")
 st.write("Search moments inside videos using AI")
+
+
+# ---------------- SESSION STATE ---------------- #
 
 if "video_path" not in st.session_state:
     st.session_state.video_path = None
@@ -32,12 +35,18 @@ if "video_path" not in st.session_state:
 if "timestamps" not in st.session_state:
     st.session_state.timestamps = []
 
+if "indexed" not in st.session_state:
+    st.session_state.indexed = False
 
-# ---------------- Upload Section ---------------- #
+
+# ---------------- VIDEO UPLOAD ---------------- #
 
 st.header("Upload Video")
 
-uploaded_video = st.file_uploader("Upload video file", type=["mp4", "mov", "avi", "mkv"])
+uploaded_video = st.file_uploader(
+    "Upload video file",
+    type=["mp4", "mov", "avi", "mkv"]
+)
 
 drive_link = st.text_input("Or paste Google Drive link")
 
@@ -45,6 +54,7 @@ drive_link = st.text_input("Or paste Google Drive link")
 if uploaded_video:
 
     st.session_state.video_path = save_uploaded_video(uploaded_video)
+    st.session_state.indexed = False
 
     st.success("Video uploaded successfully")
 
@@ -52,6 +62,7 @@ if uploaded_video:
 if drive_link:
 
     st.session_state.video_path = download_from_drive(drive_link)
+    st.session_state.indexed = False
 
     st.success("Video downloaded from Google Drive")
 
@@ -59,61 +70,90 @@ if drive_link:
 video_path = st.session_state.video_path
 
 
-# ---------------- Indexing ---------------- #
+# ---------------- VIDEO INDEXING ---------------- #
 
 if video_path:
 
     st.info(f"Video ready: {video_path}")
 
-    if st.button("Index Video"):
+    if not st.session_state.indexed:
 
-        with st.spinner("Extracting frames and building embeddings..."):
+        if st.button("Index Video"):
 
-            frames = extract_frames(video_path)
+            with st.spinner("Extracting frames and building embeddings..."):
 
-            for frame_path, ts in frames:
+                frames = extract_frames(video_path)
 
-                emb = image_embedding(frame_path)
+                progress = st.progress(0)
 
-                add_embedding(
-                    emb,
-                    {
-                        "frame": frame_path,
-                        "timestamp": ts,
-                        "video": video_path
-                    }
-                )
+                for i, (frame_path, ts) in enumerate(frames):
 
-        st.success("Video indexed successfully")
+                    emb = image_embedding(frame_path)
+
+                    add_embedding(
+                        emb,
+                        {
+                            "frame": frame_path,
+                            "timestamp": ts,
+                            "video": video_path
+                        }
+                    )
+
+                    progress.progress((i + 1) / len(frames))
+
+            st.session_state.indexed = True
+
+            st.success("Video indexed successfully")
+
+    else:
+
+        st.success("Video already indexed")
 
 
-# ---------------- Search ---------------- #
+# ---------------- SEARCH ---------------- #
 
 st.header("Search Video")
 
 query = st.text_input("Describe what you want to find")
 
+if st.button("Search"):
 
-if st.button("Search") and query:
+    if not query.strip():
 
-    with st.spinner("Searching video..."):
+        st.warning("Please enter a search query")
 
-        results = run_agent(query)
+    elif not video_path:
 
-    timestamps = []
+        st.warning("Please upload or download a video first")
 
-    for r in results:
+    else:
 
-        ts = r["timestamp"]
+        with st.spinner("Searching video..."):
 
-        timestamps.append(ts)
+            results = run_agent(query)
 
-        st.write(f"Match at timestamp: {round(ts,2)} seconds")
+        timestamps = []
 
-    st.session_state.timestamps = timestamps
+        if not results:
+
+            st.warning("No results found")
+
+        else:
+
+            for r in results:
+
+                ts = r.get("timestamp")
+
+                if ts is not None:
+
+                    timestamps.append(ts)
+
+                    st.write(f"Match at timestamp: {round(ts,2)} seconds")
+
+        st.session_state.timestamps = timestamps
 
 
-# ---------------- Clip Generation ---------------- #
+# ---------------- CLIP GENERATION ---------------- #
 
 if st.session_state.timestamps:
 
