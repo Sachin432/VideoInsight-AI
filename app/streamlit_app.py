@@ -1,3 +1,10 @@
+import os
+import sys
+
+# --- FIX PYTHON PATH ---
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+sys.path.append(ROOT_DIR)
+
 import streamlit as st
 
 from ingestion.video_storage import save_uploaded_video
@@ -11,50 +18,87 @@ from llm.langgraph_agent import run_agent
 
 from utils.clip_generator import generate_clip
 
-st.title("AI Video Query System")
 
-video_path = None
+# ---------------- UI ---------------- #
 
-uploaded_video = st.file_uploader("Upload video")
+st.set_page_config(page_title="VideoInsight AI", layout="wide")
+
+st.title("🎥 VideoInsight AI")
+st.write("Search moments inside videos using AI")
+
+if "video_path" not in st.session_state:
+    st.session_state.video_path = None
+
+if "timestamps" not in st.session_state:
+    st.session_state.timestamps = []
+
+
+# ---------------- Upload Section ---------------- #
+
+st.header("Upload Video")
+
+uploaded_video = st.file_uploader("Upload video file", type=["mp4", "mov", "avi", "mkv"])
 
 drive_link = st.text_input("Or paste Google Drive link")
 
+
 if uploaded_video:
 
-    video_path = save_uploaded_video(uploaded_video)
+    st.session_state.video_path = save_uploaded_video(uploaded_video)
+
+    st.success("Video uploaded successfully")
+
 
 if drive_link:
 
-    video_path = download_from_drive(drive_link)
+    st.session_state.video_path = download_from_drive(drive_link)
+
+    st.success("Video downloaded from Google Drive")
+
+
+video_path = st.session_state.video_path
+
+
+# ---------------- Indexing ---------------- #
 
 if video_path:
 
-    st.success("Video ready")
+    st.info(f"Video ready: {video_path}")
 
     if st.button("Index Video"):
 
-        frames = extract_frames(video_path)
+        with st.spinner("Extracting frames and building embeddings..."):
 
-        for frame_path, ts in frames:
+            frames = extract_frames(video_path)
 
-            emb = image_embedding(frame_path)
+            for frame_path, ts in frames:
 
-            add_embedding(
-                emb,
-                {
-                    "frame": frame_path,
-                    "timestamp": ts,
-                    "video": video_path
-                }
-            )
+                emb = image_embedding(frame_path)
 
-        st.success("Video indexed")
+                add_embedding(
+                    emb,
+                    {
+                        "frame": frame_path,
+                        "timestamp": ts,
+                        "video": video_path
+                    }
+                )
 
-query = st.text_input("Search video")
+        st.success("Video indexed successfully")
 
-if st.button("Search"):
 
-    results = run_agent(query)
+# ---------------- Search ---------------- #
+
+st.header("Search Video")
+
+query = st.text_input("Describe what you want to find")
+
+
+if st.button("Search") and query:
+
+    with st.spinner("Searching video..."):
+
+        results = run_agent(query)
 
     timestamps = []
 
@@ -64,11 +108,20 @@ if st.button("Search"):
 
         timestamps.append(ts)
 
-        st.write(f"Timestamp: {ts}")
+        st.write(f"Match at timestamp: {round(ts,2)} seconds")
+
+    st.session_state.timestamps = timestamps
+
+
+# ---------------- Clip Generation ---------------- #
+
+if st.session_state.timestamps:
+
+    st.header("Generate Clips")
 
     if st.button("Generate Clips"):
 
-        for ts in timestamps:
+        for ts in st.session_state.timestamps:
 
             clip = generate_clip(video_path, ts, ts + 5)
 
