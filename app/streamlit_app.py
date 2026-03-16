@@ -14,7 +14,7 @@ from processing.frame_extractor import extract_frames
 from processing.embedding_generator import image_embedding
 
 from retrieval.vector_store import add_embedding
-from llm.langgraph_agent import run_agent
+from llm.query_agent import run_agent
 
 from utils.clip_generator import generate_clip
 
