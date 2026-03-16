@@ -1,5 +1,6 @@
 from langchain_groq import ChatGroq
-from langchain.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate
+
 from app.config import config
 from app.logger import get_logger
 
@@ -20,7 +21,6 @@ Query: {query}
 Return only the refined search phrase.
 """
 )
-
 
 def parse_query(user_query):
 
