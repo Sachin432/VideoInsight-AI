@@ -1,16 +1,6 @@
 from langchain_groq import ChatGroq
 from langchain_core.prompts import ChatPromptTemplate
-
-from app.config import config
-from app.logger import get_logger
-
-logger = get_logger()
-
-llm = ChatGroq(
-    groq_api_key=config.GROQ_API_KEY,
-    model_name="llama3-70b-8192",
-    temperature=0
-)
+import streamlit as st
 
 prompt = ChatPromptTemplate.from_template(
 """
@@ -26,20 +16,20 @@ def parse_query(user_query):
 
     try:
 
-        logger.info(f"Original query: {user_query}")
+        llm = ChatGroq(
+            groq_api_key=st.secrets["GROQ_API_KEY"],
+            model_name="llama3-70b-8192",
+            temperature=0
+        )
 
         messages = prompt.format_messages(query=user_query)
 
         response = llm.invoke(messages)
 
-        refined = response.content.strip()
-
-        logger.info(f"Refined query: {refined}")
-
-        return refined
+        return response.content.strip()
 
     except Exception as e:
 
-        logger.error(f"LLM failed: {e}")
+        print("LLM error:", e)
 
         return user_query
