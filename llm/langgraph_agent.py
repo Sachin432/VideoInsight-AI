@@ -2,21 +2,28 @@ from langgraph.graph import StateGraph
 from llm.query_parser import parse_query
 from retrieval.search_engine import search_video
 
+
 class State(dict):
     pass
 
+
 def query_node(state):
 
-    parsed = parse_query(state["query"])
+    # Safe access to query
+    query = state.get("query", "")
 
-    state["parsed_query"] = parsed
+    parsed_query = parse_query(query)
+
+    state["parsed_query"] = parsed_query
 
     return state
 
 
 def search_node(state):
 
-    results = search_video(state["parsed_query"])
+    parsed_query = state.get("parsed_query", "")
+
+    results = search_video(parsed_query)
 
     state["results"] = results
 
@@ -39,4 +46,4 @@ def run_agent(query):
 
     result = graph.invoke({"query": query})
 
-    return result["results"]
+    return result.get("results", [])
