@@ -4,6 +4,7 @@ import numpy as np
 
 model = SentenceTransformer("clip-ViT-B-32")
 
+
 def image_embedding(image_path):
 
     img = Image.open(image_path)
