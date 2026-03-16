@@ -3,20 +3,24 @@ from llm.query_parser import parse_query
 from retrieval.search_engine import search_video
 
 
+# ----- Graph State -----
+
 class State(dict):
     pass
 
 
+# ----- Nodes -----
+
 def query_node(state):
 
-    # Safe access to query
     query = state.get("query", "")
 
     parsed_query = parse_query(query)
 
-    state["parsed_query"] = parsed_query
-
-    return state
+    return {
+        "query": query,
+        "parsed_query": parsed_query
+    }
 
 
 def search_node(state):
@@ -25,10 +29,12 @@ def search_node(state):
 
     results = search_video(parsed_query)
 
-    state["results"] = results
+    return {
+        "results": results
+    }
 
-    return state
 
+# ----- Build Graph -----
 
 builder = StateGraph(State)
 
@@ -42,8 +48,12 @@ builder.add_edge("query_parser", "search")
 graph = builder.compile()
 
 
+# ----- Run Agent -----
+
 def run_agent(query):
 
-    result = graph.invoke({"query": query})
+    result = graph.invoke({
+        "query": query
+    })
 
     return result.get("results", [])
