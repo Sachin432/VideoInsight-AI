@@ -1,71 +1,23 @@
-# Core utilities
-python-dotenv
-loguru
-pydantic
-tqdm
-
-# Web UI
 streamlit
-
-# Video processing
-opencv-python
+opencv-python-headless
 ffmpeg-python
 moviepy
-
-# Image processing
-pillow
 numpy
-
-# Download utilities
+pillow
 requests
 gdown
 
-# Deep learning
 torch
-torchvision
-torchaudio
-
-# Embeddings / multimodal models
 sentence-transformers
 transformers
-huggingface-hub
-
-# Vector database
 faiss-cpu
 
-# LLM ecosystem
 langchain
 langchain-community
 langchain-core
-
-# Agent frameworks
+langchain-groq
 langgraph
 
-# LLM providers
 groq
-openai
-
-# Experiment tracking
-langsmith
-
-# Data utilities
-pandas
-scikit-learn
-
-# Async / HTTP
-httpx
-aiohttp
-
-# Serialization
-orjson
-
-# Optional video AI models
-ultralytics
-
-# Progress / CLI utilities
-rich
-
-# Development utilities
-python-multipart
-uvicorn
-fastapi
+loguru
+python-dotenv
